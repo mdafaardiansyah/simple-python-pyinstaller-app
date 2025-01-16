@@ -1,57 +1,44 @@
-node {
-    // Mendefinisikan variabel yang akan digunakan di seluruh pipeline
-    def pythonApp
-    def testImage
-    def deliveryImage
-    
-    stage('Preparation') {
-        // Checkout code dari repository
-        checkout scm
-    }
-    
-    stage('Build') {
-        // Menggunakan Python Alpine image untuk kompilasi
-        docker.image('python:2-alpine').inside {
-            // Kompilasi file Python
-            sh '''
-                echo "Compiling Python source files..."
-                python -m py_compile sources/add2vals.py sources/calc.py
-            '''
-        }
-    }
-    
-    stage('Test') {
-        // Menggunakan PyTest image untuk testing
-        docker.image('qnib/pytest').inside {
-            try {
-                // Menjalankan test dan menghasilkan report XML
-                sh '''
-                    echo "Running Python tests..."
-                    py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
-                '''
-            } finally {
-                // Mengumpulkan hasil test, selalu dijalankan bahkan jika test gagal
-                junit 'test-reports/results.xml'
+pipeline {
+    agent none
+    stages {
+        stage('Build') {
+            agent {
+                docker {
+                    image 'python:2-alpine'
+                }
+            }
+            steps {
+                sh 'python -m py_compile sources/add2vals.py sources/calc.py'
             }
         }
-    }
-    
-    stage('Deliver') {
-        // Menggunakan PyInstaller untuk membuat executable
-        docker.image('cdrx/pyinstaller-linux:python2').inside {
-            try {
-                // Membuat executable file
-                sh '''
-                    echo "Creating executable..."
-                    pyinstaller --onefile sources/add2vals.py
-                '''
-                
-                // Menyimpan artifact jika build berhasil
-                archiveArtifacts artifacts: 'dist/add2vals', fingerprint: true
-            } catch (e) {
-                // Menangani kegagalan pada tahap delivery
-                echo "Delivery stage failed: ${e.message}"
-                throw e
+        stage('Test') {
+            agent {
+                docker {
+                    image 'qnib/pytest'
+                }
+            }
+            steps {
+                sh 'py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py'
+            }
+            post {
+                always {
+                    junit 'test-reports/results.xml'
+                }
+            }
+        }
+        stage('Deliver') {
+            agent {
+                docker {
+                    image 'cdrx/pyinstaller-linux:python2'
+                }
+            }
+            steps {
+                sh 'pyinstaller --onefile sources/add2vals.py'
+            }
+            post {
+                success {
+                    archiveArtifacts 'dist/add2vals'
+                }
             }
         }
     }
