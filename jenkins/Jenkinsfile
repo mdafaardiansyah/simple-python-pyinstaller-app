@@ -1,47 +1,58 @@
 node {
-    // Variabel global untuk digunakan di seluruh pipeline
-    def projectDir = 'simple-python-pyinstaller-app'
+    // Mendefinisikan variabel yang akan digunakan di seluruh pipeline
+    def pythonApp
+    def testImage
+    def deliveryImage
     
     stage('Preparation') {
-        // Membersihkan workspace dan mengambil kode terbaru
-        cleanWs()
+        // Checkout code dari repository
         checkout scm
     }
     
     stage('Build') {
-        // Menggunakan container Python untuk kompilasi
+        // Menggunakan Python Alpine image untuk kompilasi
         docker.image('python:2-alpine').inside {
-            // Membuat direktori yang diperlukan dan mengkompilasi file Python
+            // Kompilasi file Python
             sh '''
-                mkdir -p test-reports
+                echo "Compiling Python source files..."
                 python -m py_compile sources/add2vals.py sources/calc.py
             '''
         }
     }
     
     stage('Test') {
-        // Menjalankan pengujian menggunakan pytest
+        // Menggunakan PyTest image untuk testing
         docker.image('qnib/pytest').inside {
-            // Menjalankan test dan menghasilkan laporan XML
-            sh '''
-                py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
-            '''
-            // Mempublikasikan hasil test
-            junit 'test-reports/results.xml'
+            try {
+                // Menjalankan test dan menghasilkan report XML
+                sh '''
+                    echo "Running Python tests..."
+                    py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
+                '''
+            } finally {
+                // Mengumpulkan hasil test, selalu dijalankan bahkan jika test gagal
+                junit 'test-reports/results.xml'
+            }
         }
     }
     
     stage('Deliver') {
-        // Membuat executable menggunakan PyInstaller
+        // Menggunakan PyInstaller untuk membuat executable
         docker.image('cdrx/pyinstaller-linux:python2').inside {
-            // Membuat executable dan memastikan memiliki permission yang tepat
-            sh '''
-                mkdir -p dist
-                pyinstaller --onefile sources/add2vals.py
-                chmod +x dist/add2vals
-            '''
-            // Menyimpan artifact
-            archiveArtifacts artifacts: 'dist/add2vals', fingerprint: true
+            try {
+                // Membuat executable file
+                sh '''
+                    echo "Creating executable..."
+                    pyinstaller --onefile sources/add2vals.py
+                '''
+                
+                // Menyimpan artifact jika build berhasil
+                archiveArtifacts artifacts: 'dist/add2vals', fingerprint: true
+            } catch (e) {
+                // Menangani kegagalan pada tahap delivery
+                echo "Delivery stage failed: ${e.message}"
+                throw e
+            }
         }
     }
 }
