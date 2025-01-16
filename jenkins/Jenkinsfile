@@ -1,34 +1,41 @@
 node {
-    // Mendefinisikan variabel untuk menyimpan hasil test
-    def testResults
+    def customImage
+    
+    stage('Preparation') {
+        // Checkout source code
+        checkout scm
+    }
     
     stage('Build') {
-        // Menggunakan docker.image().inside() untuk menjalankan container Python
         docker.image('python:2-alpine').inside {
-            // Kompilasi file Python
+            // Buat direktori test-reports jika belum ada
+            sh 'mkdir -p test-reports'
+            // Compile Python files
             sh 'python -m py_compile sources/add2vals.py sources/calc.py'
         }
     }
     
     stage('Test') {
-        // Menjalankan pengujian menggunakan pytest dalam container
         docker.image('qnib/pytest').inside {
-            // Menjalankan pytest dan menyimpan hasil dalam file XML
+            // Jalankan pytest dengan output ke file XML
             sh 'py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py'
-            
-            // Mengumpulkan hasil test menggunakan junit
+            // Publikasikan hasil test
             junit 'test-reports/results.xml'
         }
     }
     
     stage('Deliver') {
-        // Membuat executable menggunakan PyInstaller
-        docker.image('cdrx/pyinstaller-linux:python2').inside {
-            // Membuat executable file
-            sh 'pyinstaller --onefile sources/add2vals.py'
-            
-            // Mengarsipkan hasil build jika berhasil
-            archiveArtifacts 'dist/add2vals'
+        // Gunakan tty untuk mencegah container berhenti terlalu cepat
+        docker.image('cdrx/pyinstaller-linux:python2').inside('--tty') {
+            try {
+                // Buat executable dengan PyInstaller
+                sh 'pyinstaller --onefile sources/add2vals.py'
+                // Arsipkan hasilnya
+                archiveArtifacts 'dist/add2vals'
+            } catch (error) {
+                echo "Error during Deliver stage: ${error}"
+                throw error
+            }
         }
     }
 }
