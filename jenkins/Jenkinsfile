@@ -1,45 +1,54 @@
-pipeline {
-    agent none
-    stages {
-        stage('Build') {
-            agent {
-                docker {
-                    image 'python:2-alpine'
-                }
+node {
+    // Definisi variabel global
+    def app
+    
+    stage('Preparation') {
+        // Checkout kode dari repository
+        checkout scm
+    }
+    
+    stage('Build') {
+        // Menggunakan try-catch untuk menangani kemungkinan error
+        try {
+            docker.image('python:2-alpine').inside {
+                sh '''
+                    echo "Compiling Python source files..."
+                    python -m py_compile sources/add2vals.py sources/calc.py
+                '''
             }
-            steps {
-                sh 'python -m py_compile sources/add2vals.py sources/calc.py'
-            }
+        } catch (e) {
+            error "Build stage failed: ${e.message}"
         }
-        stage('Test') {
-            agent {
-                docker {
-                    image 'qnib/pytest'
-                }
+    }
+    
+    stage('Test') {
+        try {
+            docker.image('qnib/pytest').inside {
+                sh '''
+                    echo "Running Python tests..."
+                    py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
+                '''
+                // Mengumpulkan hasil test
+                junit 'test-reports/results.xml'
             }
-            steps {
-                sh 'py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py'
-            }
-            post {
-                always {
-                    junit 'test-reports/results.xml'
-                }
-            }
+        } catch (e) {
+            error "Test stage failed: ${e.message}"
         }
-        stage('Deliver') {
-            agent {
-                docker {
-                    image 'cdrx/pyinstaller-linux:python2'
-                }
+    }
+    
+    stage('Deliver') {
+        try {
+            // Menggunakan withEnv untuk memastikan environment variables tersedia
+            docker.image('cdrx/pyinstaller-linux:python2').inside {
+                sh '''
+                    echo "Creating executable..."
+                    pyinstaller --onefile sources/add2vals.py
+                '''
+                // Menyimpan artifact
+                archiveArtifacts artifacts: 'dist/add2vals', fingerprint: true
             }
-            steps {
-                sh 'pyinstaller --onefile sources/add2vals.py'
-            }
-            post {
-                success {
-                    archiveArtifacts 'dist/add2vals'
-                }
-            }
+        } catch (e) {
+            error "Deliver stage failed: ${e.message}"
         }
     }
 }
