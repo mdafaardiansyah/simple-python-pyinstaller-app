@@ -1,35 +1,50 @@
-// Menggunakan scripted pipeline syntax
 node {
-    def buildStatus = 'SUCCESS'
-    
     try {
         stage('Preparation') {
             checkout scm
         }
-
+        
         stage('Build') {
             docker.image('python:2-alpine').inside {
-                sh '''
-                    echo "Starting Build Stage..."
-                    python -m py_compile ./sources/add2vals.py ./sources/calc.py
-                    echo "Build Stage Completed"
-                '''
+                def buildResult = sh(
+                    script: '''
+                        echo "Starting Build Stage..."
+                        python -m py_compile ./sources/add2vals.py ./sources/calc.py
+                        echo "Build Stage Completed"
+                    ''',
+                    returnStatus: true
+                )
+                
+                if (buildResult != 0) {
+                    error "Python compilation failed"
+                }
             }
         }
+        
         stage('Test') {
             docker.image('qnib/pytest').inside {
-                sh '''
-                    echo "Starting Test Stage..."
-                    mkdir -p test-reports
-                    py.test --verbose --junit-xml test-reports/results.xml ./sources/test_calc.py
-                    echo "Test Stage Completed"
-                '''
+                def testResult = sh(
+                    script: '''
+                        echo "Starting Test Stage..."
+                        mkdir -p test-reports
+                        py.test --verbose --junit-xml test-reports/results.xml ./sources/test_calc.py
+                        echo "Test Stage Completed"
+                    ''',
+                    returnStatus: true
+                )
+                
+                if (testResult != 0) {
+                    error "Tests failed"
+                }
+                
+                junit 'test-reports/results.xml'
             }
         }
+        
+        currentBuild.result = 'SUCCESS'
+        
     } catch (Exception e) {
-        buildStatus = 'FAILED'
+        currentBuild.result = 'FAILURE'
         throw e
-    } finally {
-        echo "Build finished with status: ${buildStatus}"
     }
 }
