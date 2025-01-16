@@ -1,11 +1,17 @@
 node {
+    // Variabel global untuk digunakan di seluruh pipeline
+    def projectDir = 'simple-python-pyinstaller-app'
+    
     stage('Preparation') {
-        // Checkout source code
+        // Membersihkan workspace dan mengambil kode terbaru
+        cleanWs()
         checkout scm
     }
     
     stage('Build') {
+        // Menggunakan container Python untuk kompilasi
         docker.image('python:2-alpine').inside {
+            // Membuat direktori yang diperlukan dan mengkompilasi file Python
             sh '''
                 mkdir -p test-reports
                 python -m py_compile sources/add2vals.py sources/calc.py
@@ -14,22 +20,27 @@ node {
     }
     
     stage('Test') {
+        // Menjalankan pengujian menggunakan pytest
         docker.image('qnib/pytest').inside {
+            // Menjalankan test dan menghasilkan laporan XML
             sh '''
                 py.test --verbose --junit-xml test-reports/results.xml sources/test_calc.py
             '''
+            // Mempublikasikan hasil test
             junit 'test-reports/results.xml'
         }
     }
     
     stage('Deliver') {
-        // Menggunakan sh untuk menjaga container tetap berjalan
+        // Membuat executable menggunakan PyInstaller
         docker.image('cdrx/pyinstaller-linux:python2').inside {
+            // Membuat executable dan memastikan memiliki permission yang tepat
             sh '''
                 mkdir -p dist
                 pyinstaller --onefile sources/add2vals.py
                 chmod +x dist/add2vals
             '''
+            // Menyimpan artifact
             archiveArtifacts artifacts: 'dist/add2vals', fingerprint: true
         }
     }
