@@ -41,10 +41,57 @@ node {
             }
         }
         
+        stage('Manual Approval') {
+            input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed'
+        }
+        
+        stage('Deploy') {
+            echo "Starting deployment to Heroku..."
+            
+            withCredentials([string(credentialsId: 'HEROKU_API_KEY', variable: 'HEROKU_API_KEY')]) {
+                def deployResult = sh(
+                    script: '''
+                        # Install Heroku CLI if needed
+                        if ! command -v heroku &> /dev/null; then
+                            curl https://cli-assets.heroku.com/install.sh | sh
+                        fi
+                        
+                        # Login to Heroku
+                        cat > ~/.netrc << EOF
+                        machine api.heroku.com
+                          login jenkins@example.com
+                          password $HEROKU_API_KEY
+                        machine git.heroku.com
+                          login jenkins@example.com
+                          password $HEROKU_API_KEY
+                        EOF
+                        
+                        # Deploy to Heroku
+                        git push https://git.heroku.com/dicoding-simple-python.git HEAD:main
+                        
+                        echo "Application deployed successfully!"
+                        echo "Application will run for 1 minute before pipeline proceeds..."
+                        sleep 60
+                        echo "Application runtime completed"
+                    ''',
+                    returnStatus: true
+                )
+                
+                if (deployResult != 0) {
+                    error "Deployment failed"
+                }
+            }
+        }
+        
+        // Archive artifacts
+        archiveArtifacts artifacts: 'test-reports/*.xml', allowEmptyArchive: true
+        
         currentBuild.result = 'SUCCESS'
+        echo 'Pipeline completed successfully!'
         
     } catch (Exception e) {
         currentBuild.result = 'FAILURE'
+        echo 'Pipeline failed!'
         throw e
     }
 }

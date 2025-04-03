@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dicoding Python Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card calculator-card mt-5">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h2><i class="fas fa-calculator me-2"></i>Dicoding Python Calculator</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" id="calculator-form">
+                            {% if result is not none %}
+                            <div class="alert alert-success result-box text-center">
+                                <i class="fas fa-equals me-2"></i>The result is <strong>{{ result }}</strong>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="value1" class="form-label">First Value:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-1"></i></span>
+                                    <input type="text" class="form-control" id="value1" name="value1" value="{{ value1 }}" required>
+                                </div>
+                                <div class="form-text">Enter a number or string</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="value2" class="form-label">Second Value:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-2"></i></span>
+                                    <input type="text" class="form-control" id="value2" name="value2" value="{{ value2 }}" required>
+                                </div>
+                                <div class="form-text">Enter a number or string</div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Calculate
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="reset-btn">
+                                    <i class="fas fa-sync-alt me-2"></i>Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer">
+                        <div class="info-section">
+                            <h5>How It Works</h5>
+                            <p>This calculator can add two values together:</p>
+                            <ul>
+                                <li>Two numbers (e.g. 5 + 3 = 8)</li>
+                                <li>Two strings (e.g. "abc" + "def" = "abcdef")</li>
+                                <li>A string and a number (e.g. "abc" + 5 = "abc5")</li>
+                            </ul>
+                        </div>
+                        <div class="text-center text-muted mt-3">
+                            <small>Powered by Dicoding CI/CD Pipeline Project</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
