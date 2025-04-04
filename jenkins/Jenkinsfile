@@ -51,11 +51,6 @@ node {
             withCredentials([string(credentialsId: 'HEROKU_API_KEY', variable: 'HEROKU_API_KEY')]) {
                 def deployResult = sh(
                     script: '''
-                        # Install Heroku CLI if needed
-                        if ! command -v heroku &> /dev/null; then
-                            curl https://cli-assets.heroku.com/install.sh | sh -s -- --ignore-sudo
-                        fi
-                        
                         # Login to Heroku
                         cat > ~/.netrc << EOF
                         machine api.heroku.com
