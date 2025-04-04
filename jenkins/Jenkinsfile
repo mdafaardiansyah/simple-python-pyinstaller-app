@@ -52,7 +52,7 @@ node {
                 def deployResult = sh(
                     script: '''
                         # Deploy dengan flag --verbose
-                        git push https://git.heroku.com/dicoding-simple-python.git HEAD:main -f --verbose
+                        git push https://git.heroku.com/dicoding-simple-python.git HEAD:master -f --verbose
                         
                         # Tampilkan status aplikasi
                         heroku ps -a dicoding-simple-python
