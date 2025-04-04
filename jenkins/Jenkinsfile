@@ -53,7 +53,7 @@ node {
                     script: '''
                         # Install Heroku CLI if needed
                         if ! command -v heroku &> /dev/null; then
-                            curl https://cli-assets.heroku.com/install.sh | sh
+                            curl https://cli-assets.heroku.com/install.sh | sh -s --ignore-sudo
                         fi
                         
                         # Login to Heroku
