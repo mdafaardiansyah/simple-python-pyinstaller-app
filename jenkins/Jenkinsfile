@@ -61,8 +61,15 @@ node {
                           password $HEROKU_API_KEY
                         EOF
                         
-                        # Deploy to Heroku
-                        git push https://git.heroku.com/dicoding-simple-python.git HEAD:main
+                        # Clear dan set buildpack secara eksplisit
+                        heroku buildpacks:clear -a dicoding-simple-python || true
+                        heroku buildpacks:set heroku/python -a dicoding-simple-python || true
+                        
+                        # Deploy dengan flag --verbose
+                        git push https://heroku:$HEROKU_API_KEY@git.heroku.com/dicoding-simple-python.git HEAD:main -f --verbose
+                        
+                        # Tampilkan status aplikasi
+                        heroku ps -a dicoding-simple-python
                         
                         echo "Application deployed successfully!"
                         echo "Application will run for 1 minute before pipeline proceeds..."
