@@ -51,22 +51,8 @@ node {
             withCredentials([string(credentialsId: 'HEROKU_API_KEY', variable: 'HEROKU_API_KEY')]) {
                 def deployResult = sh(
                     script: '''
-                        # Login to Heroku
-                        cat > ~/.netrc << EOF
-                        machine api.heroku.com
-                          login jenkins@example.com
-                          password $HEROKU_API_KEY
-                        machine git.heroku.com
-                          login jenkins@example.com
-                          password $HEROKU_API_KEY
-                        EOF
-                        
-                        # Clear dan set buildpack secara eksplisit
-                        heroku buildpacks:clear -a dicoding-simple-python || true
-                        heroku buildpacks:set heroku/python -a dicoding-simple-python || true
-                        
                         # Deploy dengan flag --verbose
-                        git push https://heroku:$HEROKU_API_KEY@git.heroku.com/dicoding-simple-python.git HEAD:main -f --verbose
+                        git push https://git.heroku.com/dicoding-simple-python.git HEAD:main -f --verbose
                         
                         # Tampilkan status aplikasi
                         heroku ps -a dicoding-simple-python
