@@ -2,8 +2,12 @@ from flask import Flask, render_template, request, jsonify
 import sys
 import os
 
-# Add the sources directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'sources'))
+# Lebih robust path system
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sources_dir = os.path.join(parent_dir, 'sources')
+sys.path.append(sources_dir)
+
 import calc
 
 app = Flask(__name__)
